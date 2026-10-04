@@ -1,0 +1,33 @@
+graphviz
+# ============================================================
+# Dissertation — Python Dependencies
+# ============================================================
+
+# Database drivers
+psycopg2-binary          # PostgreSQL + TimescaleDB
+pymongo                  # MongoDB
+neo4j                    # Neo4j (Bolt protocol)
+qdrant-client            # Qdrant vector DB
+cassandra-driver         # Apache Cassandra
+
+# Data generation
+faker                    # Realistic synthetic data
+numpy                    # Numerical arrays (embeddings)
+
+# Embeddings
+sentence-transformers    # Generate product description vectors
+torch                    # Required by sentence-transformers
+
+# Benchmarking
+tqdm                     # Progress bars
+
+# Analysis & Visualisation
+pandas                   # Result aggregation
+matplotlib               # Charts
+seaborn                  # Styled charts
+
+# Environment
+python-dotenv            # Load .env file
+docker
+
+elasticsearch

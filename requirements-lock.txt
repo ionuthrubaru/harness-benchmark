@@ -1,0 +1,17 @@
+# Exact versions used for the benchmark runs (Python 3.11, from the project .venv).
+# Install with: pip install -r requirements-lock.txt
+psycopg2-binary==2.9.11
+pymongo==4.16.0
+neo4j==6.1.0
+cassandra-driver==3.29.3
+elasticsearch==8.19.3
+elastic-transport==8.17.1
+docker==7.1.0
+python-dotenv==1.2.2
+numpy==2.4.2
+faker==40.5.1
+tqdm==4.67.3
+pandas==3.0.1
+matplotlib==3.10.8
+seaborn==0.13.2
+graphviz==0.21

@@ -1,0 +1,238 @@
+# ============================================================
+# Dissertation — Performance Gain of Using a Specialised DB
+# All database services with persistent volumes
+# Usage:
+#   docker-compose up -d        (start all in background)
+#   docker-compose down         (stop all, data is preserved)
+#   docker-compose down -v      (stop all AND delete all data)
+# ============================================================
+
+services:
+
+  # ------------------------------------------------------------
+  # 1. PostgreSQL — Relational baseline
+  # ------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    command: postgres -c max_connections=110
+    container_name: dissertation_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------
+  # 2. MongoDB — Document store
+  # Two logical databases are used (naive + optimised) but both
+  # live on this single MongoDB instance. MONGO_INITDB_DATABASE
+  # points at the naive DB so the root user is initialised with
+  # access to it; the optimised DB is created automatically by
+  # the optimised loader when it first writes to it.
+  # ------------------------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: dissertation_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAIVE}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------
+  # 3. Neo4j Naive — Graph DB (flat schema, FK-equivalent indexes)
+  # Bolt port 7687, HTTP port 7474.
+  # Community Edition does not support multiple databases per
+  # instance, so naive and optimised run as separate containers.
+  # ------------------------------------------------------------
+  neo4j_naive:
+    image: neo4j:5.18-community
+    container_name: dissertation_neo4j_naive
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      # Explicit memory sizing (Neo4j warns when unset). Heap = 3g, the same
+      # size the JVM heuristic chose on this 12.5 GB Docker VM for the Q1–Q7
+      # runs; page cache capped so heap + page cache + native memory stay well
+      # inside the VM (unset sizing let Q8 at 100 threads exhaust VM memory).
+      NEO4J_server_memory_heap_initial__size: "3g"
+      NEO4J_server_memory_heap_max__size: "3g"
+      NEO4J_server_memory_pagecache_size: "3g"
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_naive_data:/data
+      - neo4j_naive_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ------------------------------------------------------------
+  # 4. Neo4j Optimised — Graph DB (ALSO_BOUGHT edges, full-text
+  # indexes, composite indexes, cart as native list).
+  # Bolt port 7688, HTTP port 7475.
+  # ------------------------------------------------------------
+  neo4j_optimised:
+    image: neo4j:5.18-community
+    container_name: dissertation_neo4j_optimised
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      # Explicit memory sizing (Neo4j warns when unset). Heap = 3g, the same
+      # size the JVM heuristic chose on this 12.5 GB Docker VM for the Q1–Q7
+      # runs; page cache capped so heap + page cache + native memory stay well
+      # inside the VM (unset sizing let Q8 at 100 threads exhaust VM memory).
+      NEO4J_server_memory_heap_initial__size: "3g"
+      NEO4J_server_memory_heap_max__size: "3g"
+      NEO4J_server_memory_pagecache_size: "3g"
+    ports:
+      - "7475:7474"
+      - "7688:7687"
+    volumes:
+      - neo4j_optimised_data:/data
+      - neo4j_optimised_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ------------------------------------------------------------
+  # 5. Elasticsearch — Full-text search
+  # Security disabled for local development simplicity.
+  # ------------------------------------------------------------
+  elasticsearch:
+    image: elasticsearch:8.13.0
+    container_name: dissertation_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+# ------------------------------------------------------------
+  # ------------------------------------------------------------
+  # 6. Apache Cassandra — Columnar
+  # Two cassandra.yaml settings are patched via sed before startup:
+  #
+  #   sasi_indexes_enabled: true
+  #       SASI is disabled by default in 4.1. Required for the optimised
+  #       schema Q5 CONTAINS index on products_search.name_lower.
+  #       Without this, CREATE CUSTOM INDEX ... USING 'SASIIndex' raises:
+  #       "SASI indexes are disabled. Enable in cassandra.yaml to use."
+  #
+  #   tombstone_failure_threshold: 1000000
+  #       Default is 100,000. The naive schema uses ALLOW FILTERING on
+  #       large tables (invoice_lines, events), which scans all partitions
+  #       and crosses the default tombstone threshold, causing
+  #       READ_TOO_MANY_TOMBSTONES failures. Raising to 1,000,000 allows
+  #       naive benchmarks to complete. This is documented in the
+  #       methodology as an additional naive schema operational penalty:
+  #       the naive schema requires server reconfiguration to function at
+  #       all, not merely performing slowly.
+  #
+  #   exec /usr/local/bin/docker-entrypoint.sh cassandra -f
+  #       Hands off to the normal entrypoint with exec so Cassandra
+  #       receives signals (SIGTERM on docker stop) directly.
+  # ------------------------------------------------------------
+  cassandra:
+    image: cassandra:4.1
+    container_name: dissertation_cassandra
+    restart: unless-stopped
+    command: >
+      bash -c "
+      sed -i 's/sasi_indexes_enabled: .*/sasi_indexes_enabled: true/' /etc/cassandra/cassandra.yaml &&
+      sed -i 's/tombstone_failure_threshold: .*/tombstone_failure_threshold: 10000000/' /etc/cassandra/cassandra.yaml &&
+      sed -i 's/read_request_timeout: .*/read_request_timeout: 120000ms/' /etc/cassandra/cassandra.yaml &&
+      exec /usr/local/bin/docker-entrypoint.sh cassandra -f"
+    environment:
+      CASSANDRA_CLUSTER_NAME: dissertation_cluster
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_USER: ${CASSANDRA_USER}
+      CASSANDRA_PASSWORD: ${CASSANDRA_PASSWORD}
+      CASSANDRA_AUTHENTICATOR: PasswordAuthenticator
+      CASSANDRA_AUTHORIZER: CassandraAuthorizer
+      MAX_HEAP_SIZE: "4096M"
+      HEAP_NEWSIZE: "512M"
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep -E '^UN' || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
+
+  # ------------------------------------------------------------
+  # 7. TimescaleDB — Time series
+  # Runs on port 5433 to avoid conflict with main PostgreSQL.
+  # ------------------------------------------------------------
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: dissertation_timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TIMESCALE_USER}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD}
+      POSTGRES_DB: ${TIMESCALE_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ============================================================
+# Named volumes — data persists across docker-compose restarts
+# ============================================================
+volumes:
+  postgres_data:
+  mongodb_data:
+  neo4j_naive_data:
+  neo4j_naive_logs:
+  neo4j_optimised_data:
+  neo4j_optimised_logs:
+  elasticsearch_data:
+  cassandra_data:
+  timescaledb_data:

@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this benchmark harness, please cite it as below."
+title: "StreamCart: a result-equivalent multi-engine database benchmark harness"
+type: software
+authors:
+  - family-names: Feraru
+    given-names: Ioana-Maria
+    affiliation: "Alexandru Ioan Cuza University of Iasi, FEAA"
+  - family-names: Hrubaru
+    given-names: Ionut
+    affiliation: "Alexandru Ioan Cuza University of Iasi, FEAA"
+repository-code: "https://github.com/ionuthrubaru/harness-benchmark"
+date-released: "2026-10-04"
+license: MIT

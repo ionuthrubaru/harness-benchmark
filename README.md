@@ -163,6 +163,10 @@ python analysis/rebuild_scalability_summaries.py --all
   - Neo4j Q8 (10/50/100): uniqueness constraint on `:EventQ8(id)` added and the label cleared
     before each run — earlier runs lacked the constraint (MERGE did a label scan per insert,
     ~15 events/s) and are superseded. The `staging` block in each JSON records this.
+    The 100-thread file's staging count (883,926 rather than 1,000,000) reflects an
+    interrupted 100-thread attempt between the 50- and 100-thread runs, stopped after
+    clearing the label and inserting 883,926 events; the recorded run then started,
+    as verified, from an empty label.
   - Neo4j Q7 and Elasticsearch Q1/Q7 (+ their Q7 scalability): earlier versions returned a
     partial result (no gap-fill / rolling average in Neo4j; no tier breakdown in
     Elasticsearch). Re-implemented to return the full PostgreSQL result (see §2).

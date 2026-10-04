@@ -1,0 +1,13 @@
+# generated data and secrets
+data/
+*.csv
+.env
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+# regenerable figure outputs
+analysis/figures/
+# OS cruft
+.DS_Store

@@ -5,8 +5,8 @@ Reads every benchmark result in benchmarks/ (main runs, Q8, scalability
 summaries) and renders the figure set used in the article:
 
   F1  p50 latency heatmap, 11 configurations x Q1-Q7 (log10 colour)
-  F2  Cliff's delta panels: A naive vs PostgreSQL, B optimised vs naive,
-      C optimised vs PostgreSQL  (computed from raw_timings_ms)
+  F2  Cliff's delta panels: A naive vs PostgreSQL, B optimized vs naive,
+      C optimized vs PostgreSQL  (computed from raw_timings_ms)
   F3  engine-effect heatmap   (p50 naive / p50 PostgreSQL)
   F4  schema-effect heatmap   (p50 naive / p50 optimised)
   F5  Q8 write throughput vs concurrency (log y)
@@ -158,9 +158,9 @@ def f2_cliff_panels(reads, out):
     panels = [
         ("A  naive vs PostgreSQL", lambda e, q: (reads.get((e, "naive", q)),
                                                  reads.get(("postgres", "base", q)))),
-        ("B  optimised vs naive", lambda e, q: (reads.get((e, "optimised", q)),
+        ("B  optimized vs naive", lambda e, q: (reads.get((e, "optimised", q)),
                                                 reads.get((e, "naive", q)))),
-        ("C  optimised vs PostgreSQL", lambda e, q: (reads.get((e, "optimised", q)),
+        ("C  optimized vs PostgreSQL", lambda e, q: (reads.get((e, "optimised", q)),
                                                      reads.get(("postgres", "base", q)))),
     ]
     fig, axes = plt.subplots(3, 1, figsize=(8.2, 9.6))
@@ -298,7 +298,7 @@ def main():
                    "Engine effect: p50 naive / p50 PostgreSQL (>1 = PostgreSQL faster)",
                    lambda e, q: reads.get(("postgres", "base", q)))
     _ratio_heatmap(reads, args.out, "f4_schema_effect",
-                   "Schema effect: p50 naive / p50 optimised (>1 = optimisation faster)",
+                   "Schema effect: p50 naive / p50 optimized (>1 = optimization faster)",
                    lambda e, q: reads.get((e, "optimised", q)))
     f5_f6_q8(q8, args.out)
     f7_growth(reads, summaries, args.out)

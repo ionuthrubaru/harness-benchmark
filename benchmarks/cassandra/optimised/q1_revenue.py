@@ -1,3 +1,4 @@
+# AS_OF pinned for Linux re-measurement campaign
 """
 benchmarks/cassandra/optimised/q1_revenue.py — Cassandra Optimised: Q1
 =======================================================================
@@ -54,7 +55,7 @@ TIER_NAMES = {1: "Free", 2: "Pro", 3: "Business"}
 
 def _months_back(n: int) -> list[str]:
     """Return last n 'YYYY-MM' strings ending with the current month."""
-    now = datetime.now(timezone.utc)
+    now = datetime(2026, 3, 4, 14, 51, 58, tzinfo=timezone.utc)
     months = []
     for i in range(n - 1, -1, -1):
         dt = datetime(now.year, now.month, 1, tzinfo=timezone.utc) - timedelta(days=i * 30)

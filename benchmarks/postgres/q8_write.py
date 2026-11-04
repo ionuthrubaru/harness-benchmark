@@ -92,7 +92,7 @@ def get_connection():
 # validate async). The table is created below if it does not exist.
 
 CREATE_STAGING_TABLE = """
-CREATE TABLE IF NOT EXISTS events_q8_10 (
+CREATE TABLE IF NOT EXISTS events_q8 (
     id              UUID            PRIMARY KEY,
     user_id         UUID            NOT NULL,
     event_type      VARCHAR(50)     NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS events_q8_10 (
 """
 
 INSERT_SQL = """
-INSERT INTO events_q8_10 (id, user_id, event_type, product_id, session_id, metadata, occurred_at)
+INSERT INTO events_q8 (id, user_id, event_type, product_id, session_id, metadata, occurred_at)
 VALUES (%s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT (id) DO NOTHING;
 """

@@ -130,7 +130,7 @@ KEYSPACE = os.getenv("CASSANDRA_KEYSPACE_NAIVE", "cassandra_naive")
 # Number of parallel in-flight INSERT requests when loading large tables.
 # execute_concurrent_with_args default is 100; 200 gives better throughput on
 # a local single-node instance without overwhelming the JVM heap.
-INSERT_CONCURRENCY = 200
+INSERT_CONCURRENCY = 64
 
 # Rows processed per progress-reporting chunk. Purely cosmetic — does not
 # affect correctness or performance of the inserts.

@@ -154,7 +154,7 @@ DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 
 KEYSPACE = os.getenv("CASSANDRA_KEYSPACE_OPTIMISED", "cassandra_optimised")
 
-INSERT_CONCURRENCY = 200
+INSERT_CONCURRENCY = 64
 CHUNK_SIZE = 10_000
 
 # Orders with these statuses are treated as completed purchases for Q4 co-purchase

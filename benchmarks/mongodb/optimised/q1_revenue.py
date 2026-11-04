@@ -1,3 +1,4 @@
+# AS_OF pinned for Linux re-measurement campaign
 """
 benchmarks/mongodb/optimised/q1_revenue.py — MongoDB Optimised: Q1
 ====================================================================
@@ -42,7 +43,7 @@ from benchmarks.mongodb.mongo_conn import get_db
 # ── date helpers ──────────────────────────────────────────────────────────────
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime(2026, 3, 4, 14, 51, 58, tzinfo=timezone.utc)
 
 def twelve_months_ago_str() -> str:
     return (now_utc() - timedelta(days=365)).isoformat()

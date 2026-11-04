@@ -107,7 +107,7 @@ def get_connection():
 # is used for consistency with the naive data schema being benchmarked.
 
 CREATE_STAGING_TABLE = """
-CREATE TABLE IF NOT EXISTS events_q8_50 (
+CREATE TABLE IF NOT EXISTS events_q8 (
     id              UUID            NOT NULL,
     user_id         UUID            NOT NULL,
     event_type      VARCHAR(50)     NOT NULL,
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS events_q8_50 (
 
 CREATE_HYPERTABLE = """
 SELECT create_hypertable(
-    'events_q8_50',
+    'events_q8',
     'occurred_at',
     chunk_time_interval => INTERVAL '7 days',
     if_not_exists       => TRUE,
@@ -133,7 +133,7 @@ SELECT create_hypertable(
 # TimescaleDB requires the partition column in all unique constraints,
 # so ON CONFLICT (id) would fail as there is no unique index on id alone.
 INSERT_SQL = """
-INSERT INTO events_q8_50 (id, user_id, event_type, product_id, session_id, metadata, occurred_at)
+INSERT INTO events_q8 (id, user_id, event_type, product_id, session_id, metadata, occurred_at)
 VALUES (%s, %s, %s, %s, %s, %s, %s)
 ON CONFLICT (id, occurred_at) DO NOTHING;
 """

@@ -1,3 +1,4 @@
+# AS_OF pinned for Linux re-measurement campaign
 """
 benchmarks/neo4j/naive/q1_revenue.py — Neo4j Naive: Q1
 =======================================================
@@ -136,8 +137,8 @@ def format_month(created_at: str) -> str:
 
 def make_query_fn(driver):
     def _run():
-        now    = datetime.now(timezone.utc).isoformat()
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
+        now    = datetime(2026, 3, 4, 14, 51, 58, tzinfo=timezone.utc).isoformat()
+        cutoff = (datetime(2026, 3, 4, 14, 51, 58, tzinfo=timezone.utc) - timedelta(days=365)).isoformat()
 
         with driver.session() as session:
             # Subscription invoices — direct tier traversal

@@ -1,3 +1,4 @@
+# AS_OF pinned for Linux re-measurement campaign
 """
 benchmarks/timescaledb/naive/q1_revenue.py — TimescaleDB Naive: Q1
 ===================================================================
@@ -66,7 +67,7 @@ WITH invoice_tiers AS (
     JOIN subscriptions sub ON sub.id = i.subscription_id
     WHERE i.invoice_type = 'subscription'
       AND i.status       = 'paid'
-      AND i.created_at  >= NOW() - INTERVAL '12 months'
+      AND i.created_at  >= TIMESTAMPTZ '2026-03-04 14:51:58+00' - INTERVAL '12 months'
 
     UNION ALL
 
@@ -87,7 +88,7 @@ WITH invoice_tiers AS (
     ) active_sub ON TRUE
     WHERE i.invoice_type = 'marketplace'
       AND i.status       = 'paid'
-      AND i.created_at  >= NOW() - INTERVAL '12 months'
+      AND i.created_at  >= TIMESTAMPTZ '2026-03-04 14:51:58+00' - INTERVAL '12 months'
 
 ),
 

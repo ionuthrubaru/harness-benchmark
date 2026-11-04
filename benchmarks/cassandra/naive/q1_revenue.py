@@ -1,3 +1,4 @@
+# AS_OF pinned for Linux re-measurement campaign
 """
 benchmarks/cassandra/naive/q1_revenue.py — Cassandra Naive: Q1
 ===============================================================
@@ -114,7 +115,7 @@ def make_query_fn(session):
     so would introduce inter-iteration state that does not exist in the optimised
     schema. Each iteration starts from scratch, matching a real application request.
     """
-    since = datetime.now(timezone.utc) - timedelta(days=365)
+    since = datetime(2026, 3, 4, 14, 51, 58, tzinfo=timezone.utc) - timedelta(days=365)
 
     def _run():
         # ── Step 1: paid invoices in last 12 months (ALLOW FILTERING) ────────

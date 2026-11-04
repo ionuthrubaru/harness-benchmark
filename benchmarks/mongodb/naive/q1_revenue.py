@@ -1,3 +1,4 @@
+# AS_OF pinned for Linux re-measurement campaign
 """
 benchmarks/mongodb/naive/q1_revenue.py — MongoDB Naive: Q1
 ===========================================================
@@ -62,7 +63,7 @@ from benchmarks.mongodb.mongo_conn import get_db
 # All dates in the naive collections are stored as ISO 8601 strings.
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime(2026, 3, 4, 14, 51, 58, tzinfo=timezone.utc)
 
 
 def twelve_months_ago_str() -> str:

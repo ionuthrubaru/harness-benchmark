@@ -10,5 +10,7 @@ authors:
     given-names: Ionut
     affiliation: "Alexandru Ioan Cuza University of Iasi, FEAA"
 repository-code: "https://github.com/ionuthrubaru/harness-benchmark"
-date-released: "2026-10-04"
+version: "1.2.0"
+doi: "10.5281/zenodo.23940334"
+date-released: "2026-11-04"
 license: MIT

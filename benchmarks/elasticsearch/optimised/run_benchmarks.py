@@ -147,6 +147,21 @@ def fetch_session_pool(client: Elasticsearch, pool_size: int = 1000) -> list[str
     return ids
 
 
+def fetch_user_pool(client: Elasticsearch, pool_size: int = 1000) -> list[str]:
+    """Distinct user IDs that have at least one session (equivalent Q3 driver, revision 2026-11)."""
+    resp = client.search(
+        index="optimised_sessions",
+        query={"function_score": {"query": {"match_all": {}}, "random_score": {}}},
+        _source=["user_id"],
+        size=pool_size,
+    )
+    ids = list({h["_source"]["user_id"] for h in resp["hits"]["hits"]})
+    if not ids:
+        raise RuntimeError("optimised_sessions is empty — run the loader first.")
+    info(f"Q3 pool: {len(ids):,} user IDs with sessions")
+    return ids
+
+
 def fetch_product_pool(client: Elasticsearch, pool_size: int = 1000) -> list[str]:
     resp = client.search(
         index="optimised_order_items",
@@ -282,9 +297,24 @@ def dry_run_q2(client: Elasticsearch, invoice_ids: list[str]):
 # Lookup is by session_id (_id) — a single GET vs naive's search-by-user_id.
 # 50 concurrent threads share the thread-safe ES client.
 
-def make_q3_fn(client: Elasticsearch, session_ids: list[str]):
+# Revision 2026-11: the default Q3 is the equivalent query, "most recent session of a
+# user" (term user_id, sort last_active_at desc, size 1) at 50 threads, as in the naive
+# driver and every other engine. Q3_BY_SESSION_ID=1 restores the legacy GET by session ID.
+Q3_BY_SESSION_ID = os.environ.get("Q3_BY_SESSION_ID") == "1"
+
+
+def make_q3_fn(client: Elasticsearch, ids: list[str]):
+    if Q3_BY_SESSION_ID:
+        def _run():
+            client.get(index="optimised_sessions", id=random.choice(ids))
+        return _run
     def _run():
-        client.get(index="optimised_sessions", id=random.choice(session_ids))
+        client.search(
+            index="optimised_sessions",
+            query={"term": {"user_id": random.choice(ids)}},
+            sort=[{"last_active_at": {"order": "desc"}}],
+            size=1,
+        )
     return _run
 
 
@@ -675,20 +705,27 @@ def run_query(
             )
 
         elif query_id == "Q3":
-            pool = pools.get("sessions") or fetch_session_pool(client)
-            pools["sessions"] = pool
-            if dry:
-                dry_run_q3(client, pool); return
+            if Q3_BY_SESSION_ID:
+                pool = pools.get("sessions") or fetch_session_pool(client)
+                pools["sessions"] = pool
+                if dry:
+                    dry_run_q3(client, pool); return
+                label = ("LEGACY, not equivalent: single get(optimised_sessions, session_id) under "
+                         f"50 concurrent threads. Pool of {len(pool):,} session IDs.")
+            else:
+                pool = pools.get("q3_users") or fetch_user_pool(client)
+                pools["q3_users"] = pool
+                if dry:
+                    print(client.search(index="optimised_sessions", query={"term": {"user_id": pool[0]}},
+                                        sort=[{"last_active_at": {"order": "desc"}}], size=1)["hits"]["hits"][:1]); return
+                label = ("Session + cart retrieval by user_id under 50 concurrent threads (equivalent driver, "
+                         "revision 2026-11): search(optimised_sessions, term user_id, sort last_active_at desc, "
+                         "size=1). Optimised: cart as native nested array. "
+                         f"Pool of {len(pool):,} user IDs with sessions.")
             run_benchmark(
                 query_fn=make_q3_fn(client, pool),
                 db="elasticsearch_optimised", query_id="Q3",
-                label=(
-                    "Session + cart retrieval under 50 concurrent threads. "
-                    "Single get(optimised_sessions, session_id). "
-                    "Schema effect: cart as native array + GET by session_id "
-                    "(vs search-by-user_id + JSON string parse in naive). "
-                    f"Pool of {len(pool):,} session IDs."
-                ),
+                label=label,
                 iterations=iterations, concurrency=50, output_path=output_path,
             )
 
@@ -802,7 +839,7 @@ def main():
     print("  Schema effects vs naive:")
     print("  • Q1: tier denormalised at load → 1 server-side aggregation")
     print("  • Q2: lines embedded → 1 GET (vs 4 round trips)")
-    print("  • Q3: native cart array + GET by session_id (vs search + JSON parse)")
+    print("  • Q3: native cart array; same search by user_id as naive (revision 2026-11; Q3_BY_SESSION_ID=1 = legacy GET)")
     print("  • Q4: none (ES has no graph traversal)")
     print("  • Q5: name^3/desc^1.5 boosts + custom English analyser")
     print("  • Q6: none functionally (composite sort at storage level)")

@@ -71,7 +71,7 @@ from benchmarks.cassandra.cassandra_conn import get_session
 load_dotenv()
 
 KEYSPACE     = os.getenv("CASSANDRA_KEYSPACE_OPTIMISED", "cassandra_optimised")
-WINDOW_DAYS  = 182   # ~6 months
+WINDOW_DAYS  = 183   # ~6 months (183 days, as in every other driver; was 182 before revision 2026-11)
 ROLLING_DAYS = 7
 TIER_IDS     = [1, 2, 3]
 TIER_NAMES   = {1: "Free", 2: "Pro", 3: "Business"}

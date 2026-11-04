@@ -148,7 +148,6 @@ def copy_table(
         with open(path, "r", encoding="utf-8-sig", newline="") as f:
             reader = _csv.reader(f)
             header = next(reader)
-            first_chunk = True
             while True:
                 rows = []
                 for _ in range(CHUNK):
@@ -160,9 +159,10 @@ def copy_table(
                     break
                 buf = io.StringIO()
                 writer = _csv.writer(buf, lineterminator="\n")
-                if first_chunk:
-                    writer.writerow(header)
-                    first_chunk = False
+                # Revision 2026-11: every COPY statement uses HEADER true, so every chunk
+                # carries the header line. Writing it only into the first chunk made COPY
+                # skip the first data row of each later chunk (632 events lost at 100%).
+                writer.writerow(header)
                 for row in rows:
                     writer.writerow([r"\N" if field == "" else field for field in row])
                 buf.seek(0)

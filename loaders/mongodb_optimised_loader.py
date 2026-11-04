@@ -700,8 +700,10 @@ def load_events(db):
     info("Loading events (native metadata subdocument)...")
     rows = load_csv("events.csv")
 
-    # Also load events_q8.csv if it exists and combine
-    rows_q8 = load_csv("events_q8.csv")
+    # Also load events_q8.csv if it exists and combine.
+    # Revision 2026-11: SKIP_Q8_EVENTS=1 keeps the read collection identical to the
+    # other engines (events.csv only); the Q8 write benchmark has its own staging data.
+    rows_q8 = [] if os.environ.get("SKIP_Q8_EVENTS") == "1" else load_csv("events_q8.csv")
     if rows_q8:
         info(f"  Found {len(rows_q8)} additional events from events_q8.csv")
         rows.extend(rows_q8)

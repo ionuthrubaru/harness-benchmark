@@ -26,6 +26,8 @@ generators/                 synthetic data generators (seed 42)       → data/*
 loaders/                    one loader per engine × level
 benchmarks/harness.py       the timing harness (run_benchmark)
 benchmarks/<engine>/        drivers, Q8, scalability, results
+benchmarks/postgres/pg_attr_variant.py   PostgreSQL with load-time attribution (Table 7 ablation)
+benchmarks/cpu_sampler.py   client CPU sampler for Q8 (Table 10; Linux /proc only)
 analysis/                   equivalence check + summary rebuild
 ```
 
@@ -128,6 +130,10 @@ python benchmarks/neo4j/q8_write.py --threads 100                 # Q8
 python benchmarks/neo4j/run_scalability.py --only Q7 --schema naive --results-dir benchmarks/neo4j/naive/results/scalability
 python analysis/check_q1_q7_equivalence.py                        # needs postgres + neo4j + ES up
 python analysis/rebuild_scalability_summaries.py --all
+python benchmarks/postgres/pg_attr_variant.py build --out build.json          # invoice_attr: copy of invoices + attribution
+python benchmarks/postgres/pg_attr_variant.py verify --out equivalence.txt    # Q1/Q7 row by row vs. the baseline
+python benchmarks/postgres/pg_attr_variant.py run --query Q1 --output postgres_attr_q1.json
+python benchmarks/cpu_sampler.py <client_pid> client_cpu.csv 0.5              # while a Q8 run is in progress
 ```
 
 ### 3.4 Practical notes (learned the hard way)
